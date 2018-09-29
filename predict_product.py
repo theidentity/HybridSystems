@@ -162,15 +162,20 @@ if __name__ == '__main__':
 
     y_pred,y_true = stacked_ensemble(use_saved=True)
 
-    prod_pred = np.array(['None']*len(y_pred))
-    prod_pred[y_pred==0] = 'A'
-    prod_pred[y_pred==1] = 'B'
+    pred_prod = np.array(['None']*len(y_pred))
+    pred_prod[y_pred==0] = 'A'
+    pred_prod[y_pred==1] = 'B'
 
-    print(prod_pred)
-    print(np.unique(prod_pred))
-    print(prod_pred.shape)
+    # print(pred_prod)
+    # print(np.unique(pred_prod))
+    # print(pred_prod.shape)
+
+    # import io_data
+    # test_X, test_y = io_data.load_orig_dataset('test')
+    # pred_prod = test_y['status'].values
+    # print(pred_prod)
 
     df = pd.DataFrame()
     df['index'] = np.arange(1001,5001)
-    df['status'] = prod_pred
-    df.to_csv('data/prod_pred.csv',index=False)
+    df['status'] = pred_prod
+    df.to_csv('data/pred_prod.csv',index=False)

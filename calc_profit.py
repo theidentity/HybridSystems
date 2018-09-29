@@ -17,10 +17,10 @@ def calc_prof(customer_data):
 
 
 def select_top_n_customers(n=400):
-    df = pd.read_csv('data/prod_pred.csv')
+    df = pd.read_csv('data/pred_prod.csv')
     customer_data = df.values
 
-    df = pd.read_csv('data/prod_cis.csv')
+    df = pd.read_csv('data/pred_cis.csv')
     cis = df.values[:, 1].reshape(-1, 1)
     customer_data = np.hstack([customer_data, cis])
     print(customer_data.shape)
@@ -36,6 +36,7 @@ def compare_profits(selected_cust_idx):
     customer_data = y_test.values
 
     profit = calc_prof(customer_data)
+    
     idx = np.argsort(profit)[-400:]
     profit = profit[idx]
     print('Actual Profit : ', np.sum(profit))

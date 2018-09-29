@@ -1,16 +1,18 @@
 import pandas as pd
 import numpy as np
+np.random.seed(42)
 import lightgbm as lgbm
 import catboost
 from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.ensemble import GradientBoostingClassifier
 import helpers
-import prepare_data
+import prepare_data_clf
 
 
 def get_data(scaler, one_hot, convt_cat):
 
-    (train_X, train_y), (test_X, test_y) = prepare_data.prep_clf_data(
+    (train_X, train_y), (test_X, test_y) = prepare_data_clf.prep_clf_data(
         scaler, one_hot, convt_cat)
     train_X = train_X.values
     test_X = test_X.values
@@ -25,6 +27,7 @@ def train_and_predict_lgbm():
         scaler='none', one_hot=False, convt_cat=True)
     model = lgbm.LGBMClassifier(
         boosting_type='goss', max_depth=-1, n_estimators=1000, random_state=42)
+
     model.fit(train_X, train_y)
     y_pred = model.predict(test_X)
     y_true = test_y
@@ -95,16 +98,79 @@ def train_and_predict_naive_bayes():
     return pred_for_train, pred_for_test
 
 
-def stacked_ensemble():
-    
-    train,test = train_and_predict_lgbm()
-    print(train.shape)
-    np.
+def stacked_ensemble(use_saved):
+
+    if not use_saved:
+
+        (train_X, train_y), (test_X, test_y) = get_data(
+            scaler='minmax', one_hot=False, convt_cat=False)
+
+        train_y = train_y.reshape(-1, 1)
+        test_y = test_y.reshape(-1, 1)
+        train = train_y
+        test = test_y
+
+        train_y, test_y = train_and_predict_lgbm()
+        train = np.hstack([train, train_y.reshape(-1, 1)])
+        test = np.hstack([test, test_y.reshape(-1, 1)])
+
+        train_y, test_y = train_and_predict_catboost()
+        train = np.hstack([train, train_y.reshape(-1, 1)])
+        test = np.hstack([test, test_y.reshape(-1, 1)])
+
+        train_y, test_y = train_and_predict_mlp()
+        train = np.hstack([train, train_y.reshape(-1, 1)])
+        test = np.hstack([test, test_y.reshape(-1, 1)])
+
+        train_y, test_y = train_and_predict_naive_bayes()
+        train = np.hstack([train, train_y.reshape(-1, 1)])
+        test = np.hstack([test, test_y.reshape(-1, 1)])
+
+        print(train.shape)
+        print(test.shape)
+
+        np.save('tmp/ens_train.npy', train)
+        np.save('tmp/ens_test.npy', test)
+
+    train = np.load('tmp/ens_train.npy')
+    test = np.load('tmp/ens_test.npy')
+
+    train_X = train[:, 1:]
+    train_y = train[:, 0]
+
+    test_X = test[:, 1:]
+    test_y = test[:, 0]
+
+    model = GradientBoostingClassifier(
+        n_estimators=1000, max_depth=None, random_state=42)
+
+    model.fit(train_X, train_y)
+    y_pred = model.predict(test_X)
+    y_true = test_y
+    helpers.evaluate_clf(y_true, y_pred)
+
+    pred_for_train = model.predict(train_X)
+    return y_pred,y_true
 
 
 if __name__ == '__main__':
+    
     # train_and_predict_lgbm()
     # train_and_predict_catboost()
     # train_and_predict_mlp()
     # train_and_predict_naive_bayes()
-    stacked_ensemble()
+
+    y_pred,y_true = stacked_ensemble(use_saved=True)
+
+    prod_pred = np.array(['None']*len(y_pred))
+    prod_pred[y_pred==0] = 'A'
+    prod_pred[y_pred==1] = 'B'
+
+    print(prod_pred)
+    print(np.unique(prod_pred))
+    print(prod_pred.shape)
+
+    df = pd.DataFrame()
+    df['index'] = np.arange(1001,5001)
+    df['status'] = prod_pred
+    df.to_csv('data/prod_pred.csv',index=False)

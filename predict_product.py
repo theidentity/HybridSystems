@@ -166,14 +166,9 @@ if __name__ == '__main__':
     pred_prod[y_pred==0] = 'A'
     pred_prod[y_pred==1] = 'B'
 
-    # print(pred_prod)
-    # print(np.unique(pred_prod))
-    # print(pred_prod.shape)
-
     # import io_data
     # test_X, test_y = io_data.load_orig_dataset('test')
     # pred_prod = test_y['status'].values
-    # print(pred_prod)
 
     df = pd.DataFrame()
     df['index'] = np.arange(1001,5001)
